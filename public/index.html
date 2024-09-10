@@ -3,48 +3,196 @@
 <head>
     <title>Socket.io Chat</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e5ddd5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .name-container, .chat-container {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .name-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+        }
+
+        #name-form-element {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #name-input {
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #25d366; /* WhatsApp green */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #128c7e; /* Darker green */
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background-color: #ffffff;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            border-top: 1px solid #ccc;
+        }
+
+        .chat-container h3 {
+            background-color: #25d366;
+            color: white;
+            margin: 0;
+            padding: 15px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
         #messages {
             list-style-type: none;
             margin: 0;
             padding: 0;
         }
+
         #messages li {
-            padding: 8px;
-            margin-bottom: 2px;
-            background-color: #f3f3f3;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f1f0f0;
+            border-radius: 10px;
+            max-width: 80%;
+            align-self: flex-start;
+        }
+
+        #messages li:nth-child(odd) {
+            background-color: #dcf8c6; /* WhatsApp light green */
+            align-self: flex-end;
+        }
+
+        #form {
+            display: flex;
+            border-top: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
         }
     </style>
 </head>
 <body>
-        <h3 style="text-align: center;">HD chat</h3>
-        <hr>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-        <input id="input" autocomplete="off" /><button>Send</button>
-    </form>
-    
+    <div class="container">
+        <div class="name-container" id="name-form">
+            <form id="name-form-element" action="">
+                <input id="name-input" placeholder="Enter your name" required />
+                <button type="submit">Set Name</button>
+            </form>
+        </div>
+        <div class="chat-container" id="chat-container">
+            <h3>HD Chat</h3>
+            <div class="chat-box">
+                <ul id="messages"></ul>
+            </div>
+            <form id="form" action="">
+                <input id="input" autocomplete="off" placeholder="Type a message..." />
+                <button>Send</button>
+            </form>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        let userName = '';
+
+        // Prompt for username on page load
+        function promptForName() {
+            userName = prompt('Enter your name:').trim();
+            while (!userName) {
+                userName = prompt('Name cannot be empty. Please enter your name:').trim();
+            }
+            document.getElementById('name-form').style.display = 'none';
+            document.getElementById('chat-container').style.display = 'flex';
+        }
+
+        // Show chat form after name is set
+        document.getElementById('name-form-element').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('name-input');
+            userName = nameInput.value.trim();
+            if (userName) {
+                document.getElementById('name-form').style.display = 'none';
+                document.getElementById('chat-container').style.display = 'flex';
+            }
+        });
 
         // Handle form submission
         document.getElementById('form').addEventListener('submit', (e) => {
             e.preventDefault();
+            if (!userName) {
+                alert('Please enter your name before sending a message.');
+                return;
+            }
             const input = document.getElementById('input');
-            const msg = input.value;
+            const msg = input.value.trim();
             if (msg) {
-                socket.emit('chat message', msg); // Send message to server
+                socket.emit('chat message', { userName, msg }); // Send message with userName to server
                 input.value = '';
             }
         });
 
         // Handle incoming messages
-        socket.on('chat message', (msg) => {
+        socket.on('chat message', ({ userName, msg }) => {
             const item = document.createElement('li');
-            item.textContent = msg;
+            item.textContent = `${userName}: ${msg}`;
             document.getElementById('messages').appendChild(item);
             window.scrollTo(0, document.body.scrollHeight);
         });
+
+        // Call the function to prompt for the name on page load
+        window.onload = promptForName;
     </script>
 </body>
 </html>
